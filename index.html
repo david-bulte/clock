@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+
+        body {
+            background-color: #282828;
+        }
+
+        .menu button {
+            background-color: transparent !important;
+        }
+
+        .start {
+
+        }
+
+        .btn-lg {
+            /*font-size: 25px;*/
+            /*font-family: Arial, sans-serif;*/
+        }
+
+        .row.menu {
+            margin: 20px
+        }
+
+        .clock {
+            display: inline-block;
+            /*border: solid 5px rgb(135, 206, 235);*/
+            /*border-radius: 30px;*/
+            margin: 40px;
+            cursor: move;
+        }
+
+        .knob.invisible {
+            color: #282828
+        }
+
+        .info {
+            margin-left: 20px
+        }
+
+        .input-info {
+            width: 200px;
+            font-size: 30px;
+            font-weight: bold;
+            font-family: Arial, sans-serif;
+            color: rgb(135, 206, 235);
+            background-color: #282828;
+            border: none;
+            border-bottom: solid 5px rgb(135, 206, 235);
+        }
+
+    </style>
+</head>
+<body>
+
+<div>
+
+    <div class="row menu">
+
+        <button type="button" class="btn btn-default btn-lg add" title="Add clock">
+            <img src="img/plus_64.png">
+            <!--<span class="glyphicon glyphicon-plus-sign"></span>-->
+        </button>
+
+        <button type="button" class="btn btn-default btn-lg start" title="Start clock">
+            <img src="img/video_play_64.png">
+            <!--<span class="glyphicon glyphicon-play"></span>-->
+        </button>
+
+        <button type="button" class="btn btn-default btn-lg sound" title="Volume off">
+            <img src="img/volume_down_64.png">
+            <!--<span class="glyphicon glyphicon-volume-off"></span>-->
+        </button>
+
+        <button type="button" class="btn btn-default btn-lg sound" title="Volume up">
+            <img src="img/volume_up_64.png">
+        </button>
+
+        <div style="display: inline-block; margin-left: 100px">
+            <input class="seconds input-info" style="width: 60px">
+            <input class="input-info" value="seconds" style="margin-left: -5px; width: 150px" readonly>
+            <span>seconds?</span>
+        </div>
+
+        <div id="trash" style="display: inline-block; margin-left: 100px">
+            <img src="img/trash_64.png">
+        </div>
+
+        <div style="display: inline-block; margin-right:20px; margin-top:10px" class="pull-right">
+            <input data-readOnly="true" tabindex="-1" class="in-between-knob" value="5" data-max="5" data-thickness=".5"
+                   data-width="45px" data-height="45px" data-fgColor="orange">
+        </div>
+
+    </div>
+
+    <div id="clocks" class="row" style="height:800px;">
+    </div>
+
+</div>
+
+<script src="js/jquery-2.0.3.min.js"></script>
+<script src="js/jquery.knob.js"></script>
+
+<script>
+
+var _sound = true
+function tick() {
+    if (_sound) {
+        var snd = new Audio("sound/tick.mp3"); // buffers automatically when created
+        snd.play();
+    }
+}
+
+function clock(spec) {
+
+    var _$knob;
+    var _$clock;
+    var _currentTime;
+    var _pause;
+    var _name;
+
+    function countBack() {
+        if (_currentTime === 0) {
+            if (spec.stopped) {
+                spec.stopped();
+            }
+            return;
+        }
+
+        if (_pause) {
+            return;
+        }
+
+        _currentTime = _currentTime - 1;
+        _$knob.val(_currentTime).trigger('change');
+
+        tick();
+
+        setTimeout(function () {
+            countBack();
+        }, 1000);
+    }
+
+    function flicker() {
+        if (!_pause) {
+            return;
+        }
+
+        var $knob = $('.knob');
+        if ($knob.hasClass('invisible')) {
+            $knob.removeClass('invisible');
+        }
+        else {
+            $knob.addClass('invisible')
+        }
+
+        setTimeout(function () {
+            flicker();
+        }, 500);
+    }
+
+    function createDomElement() {
+
+        _$clock = $('<div class="clock" draggable="true"></div>');
+        _$clock.on('dragstart', function (e) {
+            spec.handleDragStart(e, that);
+        });
+        $('#clocks').append(_$clock);
+
+        _$knob = $('<input tabindex="-1" data-readOnly="true" class="knob" value="' + spec.startTime + '" data-max="' + spec.startTime + '" data-thickness=".6">');
+        _$clock.append(_$knob);
+
+        var $info = $('<div class="row info"></div>');
+        _$clock.append($info);
+
+        var $name = $('<input class="player input-info" placeholder="name?">');
+        $name.change(function () {
+            that.name($(this).val());
+        });
+        $info.append($name);
+
+//            var $trash = $('<button type="button" class="btn btn-default btn-lg trash pull-right" title="Remove clock"><span class="glyphicon glyphicon-trash"></span></button>');
+//            $trash.click(function() {
+//                $clock.remove();
+//                spec.removed(that);
+//            });
+//            $info.append($trash);
+
+        _$knob.knob({'width': 500, 'height': 500});
+    }
+
+    if (!spec.domElement) {
+        createDomElement();
+    }
+    else {
+        _$knob = spec.domElement;
+        _$knob.knob();
+    }
+
+    var that = {
+
+        init: function () {
+            _currentTime = spec.startTime;
+            _$knob.val(_currentTime).trigger('change');
+        },
+
+        start: function () {
+            _currentTime = spec.startTime;
+            countBack();
+        },
+
+        pauseOrResume: function () {
+            if (!_pause) {
+                _pause = true;
+                flicker();
+            }
+            else {
+                _pause = false;
+                $('input.knob').removeClass('invisible');
+                countBack();
+            }
+        },
+
+        name: function (name) {
+            console.log(name);
+            if (name) {
+                _name = name
+            }
+            else {
+                return _name;
+            }
+        },
+
+        setStartTime: function (startTime) {
+            spec.startTime = startTime;
+
+            _$knob.trigger(
+                    'configure',
+                    {
+                        "max": startTime
+                    }
+            );
+            this.init();
+        },
+
+        delete: function () {
+            _$clock.remove();
+        }
+
+    };
+
+    return that;
+}
+
+$(document).ready(function () {
+
+    var _started = false;
+    var _idx = -1;
+    var _seconds = 60;
+    var _currentlyDragged;
+
+    var clocks = [];
+    var $inBetween;
+
+    function init() {
+        $inBetween = clock({domElement: $('.in-between-knob'), startTime: 5, stopped: start});
+        addClock();
+
+        $('#trash')
+                .on('dragover', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                })
+                .on('dragenter', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                })
+                .on('drop', function (e) {
+                    remove(_currentlyDragged)
+                    $('#trash').hide();
+                    return false;
+                })
+                .hide();
+
+    }
+
+
+    function remove(clock) {
+        clock.delete();
+        clocks.splice(clocks.indexOf(clock), 1);
+    }
+
+    function start() {
+        if (_idx < clocks.length - 1) {
+            _idx++;
+        }
+        else {
+            $(clocks).each(function (idx, clock) {
+                clock.init();
+            })
+            _idx = 0;
+        }
+        clocks[_idx].start();
+    }
+
+    function handleDragStart(e, clock) {
+        $('#trash').show();
+        e.originalEvent.dataTransfer.setData('text/plain', 'anything');
+        _currentlyDragged = clock;
+    }
+
+    function pause() {
+    }
+
+    $('button.start').click(function () {
+        if (!_started) {
+            start();
+            _started = true;
+        }
+        else {
+            clocks[_idx].pauseOrResume();
+        }
+    });
+
+    $('input.seconds').val(_seconds).blur(function () {
+        _seconds = $(this).val();
+        $(clocks).each(function (idx, clock) {
+            clock.setStartTime(_seconds);
+        })
+    });
+
+    $('button.add').click(function () {
+        addClock();
+    });
+
+    $('button.sound').click(function () {
+        _sound = !_sound;
+    });
+
+    function addClock() {
+        clocks.push(clock({startTime: _seconds, stopped: start, removed: remove, handleDragStart: handleDragStart}));
+        clocks.push($inBetween);
+    }
+
+    init();
+
+});
+
+</script>
+
+</body>
+</html>

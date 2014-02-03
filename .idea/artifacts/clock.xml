@@ -1,0 +1,11 @@
+<component name="ArtifactManager">
+  <artifact build-on-make="true" name="clock">
+    <output-path>C:/wamp/www/clock</output-path>
+    <properties id="ant-preprocessing">
+      <options enabled="true" />
+    </properties>
+    <root id="root">
+      <element id="module-output" name="clock" />
+    </root>
+  </artifact>
+</component>
