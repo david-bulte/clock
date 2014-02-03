@@ -28,6 +28,7 @@ body {
 }
 
 .knob.invisible {
+    /*color: #ffff00;*/
     color: #282828
 }
 
